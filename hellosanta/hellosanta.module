@@ -1,0 +1,120 @@
+<?php
+
+//將/node這個頁面讓他變成not-found
+function hellosanta_menu_alter(&$items) {
+    $items['node']['page callback'] = 'drupal_not_found';
+}
+
+
+
+function hellosanta_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state, $form_id){
+
+    if($form['#attributes']['class'][0]='commerce-add-to-cart'){
+ 		$form['submit']['#value']='加入購物車';
+ 	}
+
+ 	$form['remark'] = array(
+	  '#title' => t('備註'),
+	  '#type' => 'textarea',
+	);
+	
+	$form['#submit'][]='remark_submit';
+<<<<<<< HEAD
+}
+
+ function hellosanta_form_alter(&$form, &$form_state, $form_id) {
+ 	
+ 	if($form_id=='views_form_commerce_cart_form_default'){
+		 $form['#validate'][] = 'hellosanta_batch_commerce_form_validate';
+	}
+	elseif ($form_id=='button_field_dummy_form') {
+		$form['remark'] = array(
+		  '#title' => t('備註'),
+		  '#type' => 'textarea',
+		);
+		
+			$form['#submit'][]='remark_submit';
+		}
+=======
+}
+
+
+function remark_submit($form, &$form_state) {
+	$line_item=$form_state['line_item'];
+	$remark_data=$form_state['values']['remark'];
+	$line_item->field_remark[LANGUAGE_NONE][0]['value'] = $remark_data;
+	commerce_line_item_save($line_item);
+}
+
+ function hellosanta_form_alter(&$form, &$form_state, $form_id)
+ {
+ 	// dpm($form_id);
+ 	if($form_id=='views_form_commerce_cart_form_default'){
+		 $form['#validate'][] = 'hellosanta_batch_commerce_form_validate';
+	}
+
+>>>>>>> 212f6fa878155e0bbd0760f1221b48b24fb25b75
+ }
+
+function remark_submit($form, &$form_state) {
+	$line_item=$form_state['line_item'];
+	$remark_data=$form_state['values']['remark'];
+	$line_item->field_remark[LANGUAGE_NONE][0]['value'] = $remark_data;
+	commerce_line_item_save($line_item);
+}
+
+
+
+function hellosanta_batch_commerce_form_validate(&$form, $form_state) {
+	//dpm($form_state);
+	$line_item_array=$form_state['order']->commerce_line_items['und'];
+	//dpm($line_item_array);
+	$edit_quantity_array=$form_state['values']['edit_quantity'];
+	//dpm($edit_quantity_array);
+	foreach ($line_item_array as $key => $value) {
+		$line_id=$value['line_item_id'];
+		$line=commerce_line_item_load($line_id);
+		$product_id=$line->commerce_product['und'][0]['product_id'];
+		$product=commerce_product_load($product_id);		
+		$product_title=$product->title;
+		$product_type=$product->type;
+		if($product_type=='class'){
+			$pre_tt=isset($product->field_total_count['und'][0]['value'])?($product->field_total_count['und'][0]['value']):NULL;
+			if($form_state['clicked_button']['#id'] == 'edit-checkout' && $edit_quantity_array[$key]>$pre_tt){
+				form_set_error('quantity',t("很抱歉 <span>$product_title</span> 只剩下 $pre_tt 位"));
+			}
+		}
+		elseif($product_type=='product'){
+			$pre_count=isset($product->field_per_count_limit['und'][0]['value'])?($product->field_per_count_limit['und'][0]['value']):NULL;
+			$pre_tt=isset($product->field_total_count['und'][0]['value'])?($product->field_total_count['und'][0]['value']):NULL;
+			
+			if ($form_state['clicked_button']['#id'] == 'edit-checkout' && $edit_quantity_array[$key]>$pre_count) {
+				form_set_error('quantity',t("很抱歉 <span>$product_title</span> 一次最多只能訂購 $pre_count 條"));
+			}
+			if($form_state['clicked_button']['#id'] == 'edit-checkout' && $edit_quantity_array[$key]>$pre_tt){
+				form_set_error('quantity',t("很抱歉 <span>$product_title</span> 今日只剩下 $pre_tt 條"));
+			}
+		}
+		
+	}
+ }
+
+ function hellosanta_commerce_checkout_complete($order) {
+ 	//dpm($order);
+ 	$oid=$order->order_id;
+ 	$line_item_array=$order->commerce_line_items['und'];
+ 	//dpm($line_item_array);
+ 	foreach ($line_item_array as $key => $value) {
+ 		$line_id=$line_item_array[$key]['line_item_id'];
+ 		$line=commerce_line_item_load($line_id);
+ 		$product_id=$line->commerce_product['und'][0]['product_id'];
+ 		$product=commerce_product_load($product_id);
+ 		$pre_tt=$product->field_total_count['und'][0]['value'];
+ 		$product->field_total_count['und'][0]['value']=$pre_tt-$line->quantity;
+ 		commerce_product_save($product);
+ 		//dpm($line);
+ 		//dpm($product);
+ 		//dpm($pre_tt);
+ 	}
+}
+?>
